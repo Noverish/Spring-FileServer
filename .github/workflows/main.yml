@@ -1,0 +1,40 @@
+name: Main
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    timeout-minutes: 10
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - uses: actions/cache@v2
+        with:
+          path: ~/.gradle/caches
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
+      - run: ./gradlew build
+      - run: ./gradlew bootJar
+      - run: docker build -t hyunsub/file-tmp .
+      - run: docker save -o hyunsub-file-tmp.tar hyunsub/file-tmp
+      - uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT }}
+          source: "hyunsub-file-tmp.tar"
+          target: "/home/hyunsub/docker/file-tmp/"
+      - uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT }}
+          script: cd ~/docker/file-tmp; docker load -i hyunsub-file-tmp.tar; docker-compose up -d --force-recreate; rm hyunsub-file-tmp.tar
