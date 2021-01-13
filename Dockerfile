@@ -16,4 +16,6 @@ WORKDIR /app
 
 COPY --chown=$USER build/libs/file*.jar app.jar
 
+RUN mkdir -p /app/logs/logs
+
 ENTRYPOINT ["java", "-jar", "app.jar"]
